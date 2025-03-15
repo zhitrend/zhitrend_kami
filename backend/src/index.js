@@ -8,6 +8,7 @@ import { verifyToken, generateKamiCode } from './utils/auth';
 import { errorHandler, AppError } from './utils/error';
 import Logger from './utils/logger';
 import { initializeAdmin, DEFAULT_ADMIN } from './utils/initAdmin';
+import kamiRouter from './routes/kami';
 
 // 创建路由器
 const router = Router();
@@ -119,8 +120,11 @@ router.get('/', () => {
 // 处理OPTIONS请求
 router.options('*', handleOptions);
 
+// 注册卡密路由
+router.all('/api/kami/*', kamiRouter.handle);
+
 // 公共API路由
-router.post('/auth/login', async (request, env) => {
+router.post('/api/auth/login', async (request, env) => {
   try {
     const body = await request.json();
     const { username, password } = body;
@@ -241,7 +245,10 @@ router.post('/auth/register', async (request, env) => {
 });
 
 // 卡密验证API
-router.post('/verify', async (request, env) => {
+router.post('/api/verify', async (request, env) => {
+    debugger
+    console.log("------", request);
+    
   try {
     const { code } = await request.json();
     

@@ -15,7 +15,9 @@ const Verify = () => {
       setLoading(true);
       setResult(null);
       
-      const response = await api.post('/verify', values);
+      // 将表单中的cardNumber转换为code参数，以匹配后端API期望的格式
+      const requestData = { code: values.cardNumber };
+      const response = await api.post('/verify', requestData);
       
       if (response.data.success) {
         setResult({

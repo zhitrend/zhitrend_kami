@@ -39,7 +39,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// .wrangler/tmp/bundle-oYbmYS/checked-fetch.js
+// .wrangler/tmp/bundle-2Sk6n5/checked-fetch.js
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init) : request).url
@@ -57,7 +57,7 @@ function checkURL(request, init) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  ".wrangler/tmp/bundle-oYbmYS/checked-fetch.js"() {
+  ".wrangler/tmp/bundle-2Sk6n5/checked-fetch.js"() {
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -2608,11 +2608,11 @@ var init_esm_browser = __esm({
   }
 });
 
-// .wrangler/tmp/bundle-oYbmYS/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-2Sk6n5/middleware-loader.entry.ts
 init_checked_fetch();
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-oYbmYS/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-2Sk6n5/middleware-insertion-facade.js
 init_checked_fetch();
 init_modules_watch_stub();
 
@@ -2640,6 +2640,13 @@ var e = /* @__PURE__ */ __name(({ base: e2 = "", routes: r = [] } = {}) => ({ __
 init_checked_fetch();
 init_modules_watch_stub();
 init_jwt();
+var verifyToken = /* @__PURE__ */ __name(async (token, secret) => {
+  try {
+    return jwt_default.verify(token, secret);
+  } catch (error) {
+    throw new Error(`\u8BA4\u8BC1\u5931\u8D25: ${error.message}`);
+  }
+}, "verifyToken");
 
 // src/utils/error.js
 init_checked_fetch();
@@ -2700,9 +2707,94 @@ async function initializeAdmin(env) {
 }
 __name(initializeAdmin, "initializeAdmin");
 
+// src/routes/kami.js
+init_checked_fetch();
+init_modules_watch_stub();
+var router = e({ base: "/api/kami" });
+router.get("/list", verifyToken, async (request, env) => {
+  try {
+    const page = parseInt(request.query.page) || 1;
+    const limit = parseInt(request.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const kamiKeys = await env.KAMI_KV.list({ prefix: "kami:" });
+    const total = kamiKeys.keys.length;
+    const kamiPromises = kamiKeys.keys.slice(offset, offset + limit).map((key) => env.KAMI_KV.get(key.name, { type: "json" }));
+    const kamis = await Promise.all(kamiPromises);
+    return new Response(JSON.stringify({
+      success: true,
+      data: {
+        items: kamis.filter(Boolean),
+        total,
+        page,
+        limit
+      }
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: error.message
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+});
+router.get("/stats", verifyToken, async (request, env) => {
+  try {
+    const kamiKeys = await env.KAMI_KV.list({ prefix: "kami:" });
+    const kamiPromises = kamiKeys.keys.map((key) => env.KAMI_KV.get(key.name, { type: "json" }));
+    const kamis = await Promise.all(kamiPromises);
+    const stats = {
+      totalKami: kamis.length,
+      usedKami: kamis.filter((kami) => kami && kami.status === "used").length,
+      unusedKami: kamis.filter((kami) => kami && kami.status === "unused").length,
+      totalRevenue: kamis.reduce((sum, kami) => sum + (kami ? parseFloat(kami.value) || 0 : 0), 0)
+    };
+    return new Response(JSON.stringify({
+      success: true,
+      data: stats
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: error.message
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+});
+router.get("/recent", verifyToken, async (request, env) => {
+  try {
+    const limit = 5;
+    const kamiKeys = await env.KAMI_KV.list({ prefix: "kami:", limit });
+    const kamiPromises = kamiKeys.keys.map((key) => env.KAMI_KV.get(key.name, { type: "json" }));
+    const kamis = await Promise.all(kamiPromises);
+    return new Response(JSON.stringify({
+      success: true,
+      data: kamis.filter(Boolean)
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: error.message
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+});
+var kami_default = router;
+
 // src/index.js
-var router = e();
-router.get("/api/init", async (request, env) => {
+var router2 = e();
+router2.get("/api/init", async (request, env) => {
   try {
     const admin = await initializeAdmin(env);
     return new Response(JSON.stringify({
@@ -2772,7 +2864,7 @@ var rateLimit = /* @__PURE__ */ __name(async (request) => {
   userRateLimit.requests.push(now);
   rateLimits.set(ip, userRateLimit);
 }, "rateLimit");
-router.get("/", () => {
+router2.get("/", () => {
   return new Response(JSON.stringify({
     success: true,
     message: "\u5361\u5BC6\u7CFB\u7EDFAPI\u670D\u52A1\u6B63\u5728\u8FD0\u884C"
@@ -2781,8 +2873,9 @@ router.get("/", () => {
     headers: { "Content-Type": "application/json" }
   });
 });
-router.options("*", handleOptions);
-router.post("/auth/login", async (request, env) => {
+router2.options("*", handleOptions);
+router2.all("/api/kami/*", kami_default.handle);
+router2.post("/api/auth/login", async (request, env) => {
   try {
     const body = await request.json();
     const { username, password } = body;
@@ -2834,7 +2927,7 @@ router.post("/auth/login", async (request, env) => {
     });
   }
 });
-router.post("/auth/register", async (request, env) => {
+router2.post("/auth/register", async (request, env) => {
   try {
     const { username, password, email } = await request.json();
     const userKey = `user:${username}`;
@@ -2879,7 +2972,9 @@ router.post("/auth/register", async (request, env) => {
     });
   }
 });
-router.post("/verify", async (request, env) => {
+router2.post("/api/verify", async (request, env) => {
+  debugger;
+  console.log("------", request);
   try {
     const { code } = await request.json();
     const kamiKey = `kami:${code}`;
@@ -2925,7 +3020,7 @@ var src_default = {
     }
     try {
       await rateLimit(request);
-      const response = await router.handle(request, env);
+      const response = await router2.handle(request, env);
       return addCorsHeaders(response || new Response("Not Found", { status: 404 }));
     } catch (error) {
       const errorResponse = errorHandler(error);
@@ -2979,7 +3074,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-oYbmYS/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-2Sk6n5/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -3013,7 +3108,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-oYbmYS/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-2Sk6n5/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -14,7 +14,7 @@ const KamiGenerate = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/admin/kami/generate', values, {
+      const response = await axios.post('/api/kami/generate', values, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
