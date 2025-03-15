@@ -1,0 +1,19 @@
+name = "kami-backend"
+main = "src/index.js"
+compatibility_date = "2023-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV命名空间配置
+[[kv_namespaces]]
+binding = "KAMI_KV"
+id = "kami_kv_production"
+preview_id = "kami_kv_preview"
+
+# 开发环境变量
+[vars]
+ENVIRONMENT = "development"
+JWT_SECRET = "kami_system_jwt_secret_key"
+
+# 生产环境变量
+[env.production.vars]
+ENVIRONMENT = "production"
