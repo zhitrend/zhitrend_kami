@@ -3,7 +3,7 @@ import { message } from 'antd';
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8787',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -27,7 +27,7 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
-    return response;
+    return response.data;
   },
   (error) => {
     if (error.response) {
@@ -48,15 +48,13 @@ api.interceptors.response.use(
           message.error('请求的资源不存在');
           break;
         case 500:
-          message.error('服务器错误，请稍后重试');
+          message.error('服务器内部错误');
           break;
         default:
           message.error(error.response.data?.message || '请求失败');
       }
-    } else if (error.request) {
-      message.error('网络错误，请检查网络连接');
     } else {
-      message.error('请求配置错误');
+      message.error('网络错误，请检查网络连接');
     }
     return Promise.reject(error);
   }

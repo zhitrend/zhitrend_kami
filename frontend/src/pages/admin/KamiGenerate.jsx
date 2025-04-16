@@ -18,36 +18,52 @@ const KamiGenerate = () => {
       setLoading(true);
       setGenerating(true);
       
-      // 这里应该调用后端API生成卡密
-      // const response = await axios.post('/api/kami/generate', values);
+      // 准备请求参数
+      const requestData = {
+        count: values.count,
+        type: values.type,
+        value: values.value || 0,
+        expiresIn: values.expireType === 'never' ? 3650 : 30 // 默认30天，永久设为10年
+      };
       
-      // 模拟生成卡密过程
-      setTimeout(() => {
-        // 模拟生成的卡密数据
-        const mockKamis = [];
-        for (let i = 1; i <= values.count; i++) {
-          const randomCardNumber = `KM${Date.now().toString().slice(-6)}${String(i).padStart(3, '0')}`;
-          const randomPassword = Math.random().toString(36).substring(2, 10).toUpperCase();
-          
-          mockKamis.push({
-            id: i,
-            cardNumber: randomCardNumber,
-            password: randomPassword,
-            type: values.type,
-            expireTime: values.expireTime ? values.expireTime.format('YYYY-MM-DD 23:59:59') : '永久有效',
-            createTime: new Date().toLocaleString(),
-            status: '未使用',
-            remark: values.remark || ''
-          });
-        }
+      // 如果有固定过期日期，计算天数
+      if (values.expireType === 'fixed' && values.expireTime) {
+        const expireDate = new Date(values.expireTime.format('YYYY-MM-DD 23:59:59'));
+        const currentDate = new Date();
+        const diffTime = expireDate - currentDate;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        requestData.expiresIn = diffDays > 0 ? diffDays : 1; // 至少1天
+      }
+      
+      // 调用后端API生成卡密
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/api/kami/generate', requestData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (response.data.success) {
+        // 转换后端返回的卡密数据格式以适应前端显示
+        const kamis = response.data.data.map((kami, index) => ({
+          id: index + 1,
+          cardNumber: kami.code,
+          password: '', // 后端生成的卡密没有单独的密码字段
+          type: kami.type,
+          expireTime: new Date(kami.expireAt).toLocaleString(),
+          createTime: new Date(kami.createdAt).toLocaleString(),
+          status: kami.status === 'unused' ? '未使用' : '已使用',
+          remark: values.remark || ''
+        }));
         
-        setGeneratedKamis(mockKamis);
-        message.success(`成功生成 ${values.count} 个卡密`);
-        setLoading(false);
-        setGenerating(false);
-      }, 1500);
+        setGeneratedKamis(kamis);
+        message.success(response.data.message || `成功生成 ${values.count} 个卡密`);
+      } else {
+        message.error(response.data.message || '生成卡密失败');
+      }
     } catch (error) {
       message.error('生成卡密失败：' + (error.response?.data?.message || error.message));
+    } finally {
       setLoading(false);
       setGenerating(false);
     }

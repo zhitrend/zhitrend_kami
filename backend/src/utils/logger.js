@@ -2,59 +2,45 @@
  * 日志记录工具函数
  */
 
-const LOG_LEVELS = {
-  DEBUG: 'debug',
-  INFO: 'info',
-  WARN: 'warn',
-  ERROR: 'error'
-};
-
 class Logger {
   constructor(env) {
     this.env = env;
   }
 
-  async log(level, message, data = {}) {
-    const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      level,
-      message,
-      ...data
-    };
+  info(message, data = {}) {
+    this.log('INFO', message, data);
+  }
 
-    // 存储日志到KV存储
-    const logKey = `log:${timestamp}`;
-    await this.env.KAMI_KV.put(logKey, JSON.stringify(logEntry));
+  error(message, error = {}) {
+    const errorInfo = error instanceof Error ? 
+      { message: error.message, stack: error.stack } : 
+      { error };
+    
+    this.log('ERROR', message, errorInfo);
+  }
 
-    // 如果是错误日志，保存更长时间
-    if (level === LOG_LEVELS.ERROR) {
-      const errorKey = `error:${timestamp}`;
-      await this.env.KAMI_KV.put(errorKey, JSON.stringify(logEntry), {
-        expirationTtl: 7 * 24 * 60 * 60 // 保存7天
-      });
+  warn(message, data = {}) {
+    this.log('WARN', message, data);
+  }
+
+  debug(message, data = {}) {
+    this.log('DEBUG', message, data);
+  }
+
+  log(level, message, data = {}) {
+    try {
+      const timestamp = new Date().toISOString();
+      const logEntry = {
+        timestamp,
+        level,
+        message,
+        data
+      };
+
+      console.log(JSON.stringify(logEntry));
+    } catch (e) {
+      console.error('日志记录失败:', e);
     }
-
-    // 开发环境下在控制台输出日志
-    if (this.env.ENVIRONMENT === 'development') {
-      console.log(`[${level.toUpperCase()}] ${message}`, data);
-    }
-  }
-
-  debug(message, data) {
-    return this.log(LOG_LEVELS.DEBUG, message, data);
-  }
-
-  info(message, data) {
-    return this.log(LOG_LEVELS.INFO, message, data);
-  }
-
-  warn(message, data) {
-    return this.log(LOG_LEVELS.WARN, message, data);
-  }
-
-  error(message, data) {
-    return this.log(LOG_LEVELS.ERROR, message, data);
   }
 
   async getErrorLogs(limit = 50) {

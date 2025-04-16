@@ -3,6 +3,14 @@ main = "src/index.js"
 compatibility_date = "2023-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# 外部模块配置
+[build]
+command = ""
+[build.upload]
+format = "modules"
+dir = "./src"
+main = "index.js"
+
 # KV命名空间配置
 [[kv_namespaces]]
 binding = "KAMI_KV"

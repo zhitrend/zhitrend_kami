@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import Auth from '../utils/auth';
 
 const Register = () => {
   const [loading, setLoading] = useState(false);
@@ -12,16 +12,17 @@ const Register = () => {
     try {
       setLoading(true);
       const { confirmPassword, ...registerData } = values;
-      const response = await api.post('/auth/register', registerData);
+      const response = await Auth.register(registerData.username, registerData.password, registerData.email);
       
-      if (response.data.success) {
+      if (response.success) {
         message.success('注册成功！请登录');
         navigate('/login');
       } else {
-        message.error(response.data.message || '注册失败');
+        message.error(response.message || '注册失败');
       }
     } catch (error) {
-      message.error('注册失败：' + (error.response?.data?.message || error.message));
+      message.error('注册失败：' + (error.response?.message || error.message));
+    } finally {
       setLoading(false);
     }
   };
@@ -83,7 +84,7 @@ const Register = () => {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" className="register-form-button" style={{ width: '100%' }} loading={loading}>
+            <Button type="primary" htmlType="submit" className="register-form-button" block loading={loading}>
               注册
             </Button>
             已有账号？ <Link to="/login">立即登录</Link>

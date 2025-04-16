@@ -3,25 +3,28 @@
  */
 
 class AppError extends Error {
-  constructor(message, statusCode = 500, errorCode = 'INTERNAL_ERROR') {
+  constructor(message, statusCode = 500, code = 'INTERNAL_SERVER_ERROR') {
     super(message);
     this.statusCode = statusCode;
-    this.errorCode = errorCode;
-    this.timestamp = new Date().toISOString();
+    this.code = code;
+    this.isOperational = true;
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
-const errorHandler = (error) => {
+const errorHandler = (error, request, env) => {
+  console.error('Error:', error);
+  
   const statusCode = error.statusCode || 500;
-  const errorCode = error.errorCode || 'INTERNAL_ERROR';
   const message = error.message || '服务器内部错误';
-
+  const code = error.code || 'INTERNAL_SERVER_ERROR';
+  
   return new Response(JSON.stringify({
     success: false,
     error: {
-      code: errorCode,
+      code,
       message,
-      timestamp: error.timestamp || new Date().toISOString()
+      ...(env.ENVIRONMENT === 'development' && { stack: error.stack })
     }
   }), {
     status: statusCode,

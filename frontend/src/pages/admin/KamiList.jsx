@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Space, Input, Select, DatePicker, Modal, message, Tag, Tooltip, Popconfirm } from 'antd';
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, CopyOutlined, ReloadOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -29,13 +29,13 @@ const KamiList = () => {
   const fetchData = async (params = {}) => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/kami/list', {
+      const response = await api.get('/kami/list', {
         params: {
           page: params.current || pagination.current,
           limit: params.pageSize || pagination.pageSize,
           status: filters.status === 'all' ? undefined : filters.status,
           keyword: filters.keyword || undefined,
-          dateRange: filters.dateRange ? {
+          dateRange: filters.dateRange && Array.isArray(filters.dateRange) && filters.dateRange.length === 2 ? {
             start: filters.dateRange[0].format('YYYY-MM-DD'),
             end: filters.dateRange[1].format('YYYY-MM-DD')
           } : undefined
@@ -103,16 +103,22 @@ const KamiList = () => {
     });
   };
 
-  const handleDeleteKami = (id) => {
-    // 这里应该调用后端API删除卡密
-    // await axios.delete(`/api/kami/${id}`);
-    
-    // 模拟删除成功
-    message.success('删除成功');
-    fetchData({
-      current: pagination.current,
-      pageSize: pagination.pageSize,
-    });
+  const handleDeleteKami = async (id) => {
+    try {
+      const response = await api.delete(`/kami/${id}`);
+      if (response.data.success) {
+        message.success('删除成功');
+        fetchData({
+          current: pagination.current,
+          pageSize: pagination.pageSize,
+        });
+      } else {
+        message.error('删除失败：' + response.data.message);
+      }
+    } catch (error) {
+      console.error('删除卡密失败:', error);
+      message.error('删除失败：' + (error.response?.data?.message || error.message));
+    }
   };
 
   const handleBatchDelete = () => {
@@ -125,16 +131,22 @@ const KamiList = () => {
       title: '确认删除',
       content: `确定要删除选中的 ${selectedRowKeys.length} 条卡密记录吗？`,
       onOk: async () => {
-        // 这里应该调用后端API批量删除卡密
-        // await axios.post('/api/kami/batch-delete', { ids: selectedRowKeys });
-        
-        // 模拟删除成功
-        message.success(`成功删除 ${selectedRowKeys.length} 条记录`);
-        setSelectedRowKeys([]);
-        fetchData({
-          current: pagination.current,
-          pageSize: pagination.pageSize,
-        });
+        try {
+          const response = await api.post('/kami/batch-delete', { ids: selectedRowKeys });
+          if (response.data.success) {
+            message.success(`成功删除 ${selectedRowKeys.length} 条记录`);
+            setSelectedRowKeys([]);
+            fetchData({
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+            });
+          } else {
+            message.error('批量删除失败：' + response.data.message);
+          }
+        } catch (error) {
+          console.error('批量删除卡密失败:', error);
+          message.error('批量删除失败：' + (error.response?.data?.message || error.message));
+        }
       },
     });
   };

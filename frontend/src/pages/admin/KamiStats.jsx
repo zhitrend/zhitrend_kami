@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, DatePicker, Button, Typography, Spin, Divider } from 'antd';
+import { Card, Row, Col, Statistic, DatePicker, Button, Typography, Spin, Divider, message } from 'antd';
 import { KeyOutlined, CheckCircleOutlined, CloseCircleOutlined, UserOutlined, DollarOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 
 // 引入图表库
 import { Line, Pie, Column } from '@ant-design/plots';
@@ -23,67 +23,64 @@ const KamiStats = () => {
   const [typeData, setTypeData] = useState([]);
   const [revenueData, setRevenueData] = useState([]);
 
-  // 模拟从API获取数据
-  const fetchData = () => {
+  // 从API获取数据
+  const fetchData = async () => {
     setLoading(true);
-    
-    // 这里应该调用后端API获取统计数据
-    // const response = await axios.get('/api/stats', { params: { startDate, endDate } });
-    
-    // 模拟API响应
-    setTimeout(() => {
-      // 模拟统计数据
-      setStats({
-        totalKami: 1000,
-        usedKami: 350,
-        unusedKami: 650,
-        totalRevenue: 15800,
-        conversionRate: 35
-      });
-
-      // 模拟使用趋势数据（最近30天）
-      const mockUsageData = [];
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().slice(0, 10);
-        mockUsageData.push({
-          date: dateStr,
-          value: Math.floor(Math.random() * 20) + 1,
-          type: '已使用'
-        });
-        mockUsageData.push({
-          date: dateStr,
-          value: Math.floor(Math.random() * 30) + 5,
-          type: '已生成'
-        });
+    try {
+      // 准备日期参数
+      let params = {};
+      if (dateRange && dateRange.length === 2) {
+        params.startDate = dateRange[0].format('YYYY-MM-DD');
+        params.endDate = dateRange[1].format('YYYY-MM-DD');
       }
-      setUsageData(mockUsageData);
-
-      // 模拟卡密类型分布数据
-      setTypeData([
-        { type: '月卡', value: 250 },
-        { type: '季卡', value: 180 },
-        { type: '年卡', value: 120 },
-        { type: '永久卡', value: 80 },
-        { type: '试用卡', value: 370 }
-      ]);
-
-      // 模拟收入数据（最近12个月）
-      const mockRevenueData = [];
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const monthStr = date.toISOString().slice(0, 7);
-        mockRevenueData.push({
-          month: monthStr,
-          revenue: Math.floor(Math.random() * 5000) + 1000
+      
+      // 获取统计数据
+      const statsResponse = await api.get('/kami/stats', { params });
+      if (statsResponse.data.success) {
+        const statsData = statsResponse.data.data;
+        // 计算转化率
+        const conversionRate = statsData.totalKami > 0 
+          ? ((statsData.usedKami / statsData.totalKami) * 100).toFixed(2) 
+          : 0;
+        
+        setStats({
+          ...statsData,
+          conversionRate: parseFloat(conversionRate)
         });
+      } else {
+        message.error('获取统计数据失败：' + statsResponse.data.message);
       }
-      setRevenueData(mockRevenueData);
-
+      
+      // 获取使用趋势数据
+      const usageResponse = await api.get('/kami/usage-trend', { params });
+      if (usageResponse.data.success) {
+        setUsageData(usageResponse.data.data);
+      } else {
+        message.error('获取使用趋势数据失败：' + usageResponse.data.message);
+      }
+      
+      // 获取卡密类型分布数据
+      const typeResponse = await api.get('/kami/type-distribution');
+      if (typeResponse.data.success) {
+        setTypeData(typeResponse.data.data);
+      } else {
+        message.error('获取卡密类型分布数据失败：' + typeResponse.data.message);
+      }
+      
+      // 获取收入趋势数据
+      const revenueResponse = await api.get('/kami/revenue-trend');
+      if (revenueResponse.data.success) {
+        setRevenueData(revenueResponse.data.data);
+      } else {
+        message.error('获取收入趋势数据失败：' + revenueResponse.data.message);
+      }
+      
+    } catch (error) {
+      console.error('获取统计数据失败:', error);
+      message.error('获取统计数据失败：' + (error.response?.data?.message || error.message));
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   useEffect(() => {

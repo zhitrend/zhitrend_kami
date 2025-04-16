@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Checkbox, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import Auth from '../utils/auth';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -11,24 +11,15 @@ const Login = () => {
   const onFinish = async (values) => {
     try {
       setLoading(true);
-      const response = await api.post('/auth/login', values);
+      const user = await Auth.login(values.username, values.password);
       
-      if (response.data.success) {
-        // 存储token和用户信息
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userRole', response.data.user.role);
-        localStorage.setItem('userId', response.data.user.id);
-        localStorage.setItem('username', response.data.user.username);
-        
-        message.success('登录成功！');
-        setLoading(false);
-        navigate(response.data.user.role === 'admin' ? '/admin' : '/');
-      } else {
-        message.error(response.data.message || '登录失败');
-        setLoading(false);
-      }
+      message.success('登录成功！');
+      
+      // 根据用户角色跳转到不同页面
+      navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (error) {
-      message.error('登录失败：' + (error.response?.data?.message || error.message));
+      message.error('登录失败：' + (error.response?.message || error.message));
+    } finally {
       setLoading(false);
     }
   };
@@ -66,7 +57,7 @@ const Login = () => {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" className="login-form-button" loading={loading}>
+            <Button type="primary" htmlType="submit" className="login-form-button" loading={loading} block>
               登录
             </Button>
             或 <Link to="/register">立即注册</Link>

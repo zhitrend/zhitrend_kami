@@ -3,100 +3,42 @@
  * 用于生成和验证JWT令牌
  */
 
-// 使用Web Crypto API实现JWT
-const jwt = {
-  async sign(payload, secret, options = {}) {
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT'
-    };
-    
-    const now = Math.floor(Date.now() / 1000);
-    const expiresIn = options.expiresIn ? parseInt(options.expiresIn) : 86400; // 默认24小时
-    
-    const tokenPayload = {
-      ...payload,
-      iat: now,
-      exp: now + expiresIn
-    };
-    
-    const base64Header = btoa(JSON.stringify(header));
-    const base64Payload = btoa(JSON.stringify(tokenPayload));
-    
-    const encoder = new TextEncoder();
-    const data = encoder.encode(`${base64Header}.${base64Payload}`);
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      data
-    );
-    
-    const base64Signature = btoa(String.fromCharCode(...new Uint8Array(signature)));
-    
-    return `${base64Header}.${base64Payload}.${base64Signature}`;
-  },
-  
-  async verify(token, secret) {
+import { SignJWT, jwtVerify } from 'jose';
+
+class JWT {
+  constructor(secret) {
+    this.secret = new TextEncoder().encode(secret || 'default_secret_key');
+  }
+
+  async sign(payload, options = {}) {
     try {
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        throw new Error('Invalid token format');
-      }
+      // 确保payload是对象
+      const data = typeof payload === 'object' ? payload : { sub: payload };
       
-      const [base64Header, base64Payload, receivedSignature] = parts;
+      const token = await new SignJWT(data)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime(options.expiresIn || '24h')
+        .sign(this.secret);
       
-      // 解码并验证header
-      const header = JSON.parse(atob(base64Header));
-      if (header.alg !== 'HS256') {
-        throw new Error('Unsupported algorithm');
-      }
-      
-      // 验证签名
-      const encoder = new TextEncoder();
-      const data = encoder.encode(`${base64Header}.${base64Payload}`);
-      const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(secret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['verify']
-      );
-      
-      const signatureArray = Uint8Array.from(atob(receivedSignature), c => c.charCodeAt(0));
-      
-      const isValid = await crypto.subtle.verify(
-        'HMAC',
-        key,
-        signatureArray,
-        data
-      );
-      
-      if (!isValid) {
-        throw new Error('Invalid signature');
-      }
-      
-      // 解码并验证payload
-      const payload = JSON.parse(atob(base64Payload));
-      
-      // 验证过期时间
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
-        throw new Error('Token has expired');
-      }
-      
-      return payload;
+      return token;
     } catch (error) {
-      throw new Error(`Token verification failed: ${error.message}`);
+      console.error('JWT签名错误:', error);
+      throw new Error('生成令牌失败');
     }
   }
-};
 
-export default jwt;
+  async verify(token) {
+    try {
+      if (!token) throw new Error('令牌不能为空');
+      
+      const { payload } = await jwtVerify(token, this.secret);
+      return payload;
+    } catch (error) {
+      console.error('JWT验证错误:', error);
+      throw new Error('无效的令牌');
+    }
+  }
+}
+
+export default JWT;

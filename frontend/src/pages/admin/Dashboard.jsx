@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Button, Typography, Spin } from 'antd';
+import { Card, Row, Col, Statistic, Table, Button, Typography, Spin, message } from 'antd';
 import { KeyOutlined, CheckCircleOutlined, CloseCircleOutlined, UserOutlined, DollarOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const { Title } = Typography;
 
@@ -18,36 +18,36 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/kami/stats', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setStats(response.data.data);
+      const response = await api.get('/kami/stats');
+      if (response.data.success) {
+        setStats(response.data.data);
+      } else {
+        message.error('获取统计数据失败：' + response.data.message);
+      }
     } catch (error) {
       console.error('获取统计数据失败:', error);
+      message.error('获取统计数据失败：' + (error.response?.data?.message || error.message));
     }
   };
 
   const fetchRecentKamis = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/kami/recent', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setRecentKamis(response.data.data.map(kami => ({
-        key: kami.code,
-        cardNumber: kami.code,
-        password: '******',
-        status: kami.status === 'used' ? '已使用' : '未使用',
-        createTime: new Date(kami.createdAt).toLocaleString(),
-        expireTime: kami.expiresAt ? new Date(kami.expiresAt).toLocaleString() : '永不过期'
-      })));
+      const response = await api.get('/kami/recent');
+      if (response.data.success) {
+        setRecentKamis(response.data.data.map(kami => ({
+          key: kami.code,
+          cardNumber: kami.code,
+          password: '******',
+          status: kami.status === 'used' ? '已使用' : '未使用',
+          createTime: new Date(kami.createdAt).toLocaleString(),
+          expireTime: kami.expiresAt ? new Date(kami.expiresAt).toLocaleString() : '永不过期'
+        })));
+      } else {
+        message.error('获取最近卡密失败：' + response.data.message);
+      }
     } catch (error) {
       console.error('获取最近卡密失败:', error);
+      message.error('获取最近卡密失败：' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -59,41 +59,35 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const columns = [
-    {
-      title: '卡号',
-      dataIndex: 'cardNumber',
-      key: 'cardNumber',
-    },
-    {
-      title: '密码',
-      dataIndex: 'password',
-      key: 'password',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (text) => (
-        <span>
-          {text === '未使用' ? 
-            <CheckCircleOutlined style={{ color: '#52c41a' }} /> : 
-            <CloseCircleOutlined style={{ color: '#f5222d' }} />}
-          {' '}{text}
-        </span>
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createTime',
-      key: 'createTime',
-    },
-    {
-      title: '过期时间',
-      dataIndex: 'expireTime',
-      key: 'expireTime',
-    },
-  ];
+  const columns = [{
+    title: '卡号',
+    dataIndex: 'cardNumber',
+    key: 'cardNumber',
+  }, {
+    title: '密码',
+    dataIndex: 'password',
+    key: 'password',
+  }, {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    render: (text) => (
+      <span>
+        {text === '未使用' ? 
+          <CheckCircleOutlined style={{ color: '#52c41a' }} /> : 
+          <CloseCircleOutlined style={{ color: '#f5222d' }} />}
+        {' '}{text}
+      </span>
+    ),
+  }, {
+    title: '创建时间',
+    dataIndex: 'createTime',
+    key: 'createTime',
+  }, {
+    title: '过期时间',
+    dataIndex: 'expireTime',
+    key: 'expireTime',
+  }];
 
   if (loading) {
     return (

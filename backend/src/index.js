@@ -13,59 +13,50 @@ import kamiRouter from './routes/kami';
 // 创建路由器
 const router = Router();
 
-// 初始化管理员账号
-router.get('/api/init', async (request, env) => {
-  try {
-    const admin = await initializeAdmin(env);
-    return new Response(JSON.stringify({
-      success: true,
-      message: '管理员账号初始化成功',
-      defaultCredentials: {
-        username: DEFAULT_ADMIN.username,
-        password: DEFAULT_ADMIN.password
-      }
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({
-      success: false,
-      message: '管理员账号初始化失败: ' + error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-});
-
-// 跨域处理中间件
+// CORS 配置
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, accept, Origin, X-Requested-With',
   'Access-Control-Max-Age': '86400',
 };
 
-// 处理OPTIONS请求的中间件
-const handleOptions = (request) => {
+// 处理 OPTIONS 请求
+function handleOptions(request) {
+  if (request.headers.get('Origin') !== null) {
+    return new Response(null, {
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Origin': request.headers.get('Origin'),
+      },
+      status: 204,
+    });
+  }
   return new Response(null, {
     headers: corsHeaders,
     status: 204,
   });
-};
+}
 
-// 添加CORS头的中间件
-const addCorsHeaders = (response) => {
-  const newHeaders = new Headers(response.headers);
-  Object.keys(corsHeaders).forEach(key => {
-    newHeaders.set(key, corsHeaders[key]);
+// 添加 CORS 头到响应
+function addCorsHeaders(response) {
+  const headers = new Headers(response.headers);
+  const origin = response.headers.get('Origin') || '*';
+  
+  Object.keys(corsHeaders).forEach((key) => {
+    if (key === 'Access-Control-Allow-Origin') {
+      headers.set(key, origin);
+    } else {
+      headers.set(key, corsHeaders[key]);
+    }
   });
+  
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: newHeaders,
+    headers,
   });
-};
+}
 
 // 请求频率限制中间件
 const rateLimits = new Map();
@@ -80,8 +71,6 @@ const rateLimit = async (request) => {
     blocked: false,
     blockedUntil: 0
   };
-
-
 
   // 检查是否在封禁期
   if (userRateLimit.blocked && now < userRateLimit.blockedUntil) {
@@ -104,16 +93,13 @@ const rateLimit = async (request) => {
   rateLimits.set(ip, userRateLimit);
 };
 
-
-
 // 添加根路由处理
 router.get('/', () => {
   return new Response(JSON.stringify({
     success: true,
     message: '卡密系统API服务正在运行'
   }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
   });
 });
 
@@ -121,18 +107,33 @@ router.get('/', () => {
 router.options('*', handleOptions);
 
 // 注册卡密路由
-router.all('/api/kami/*', kamiRouter.handle);
+router.all('/api/kami/*', async (request, env, ctx) => {
+  // 修改请求路径，移除 /api/kami 前缀
+  const url = new URL(request.url);
+  const pathname = url.pathname.replace('/api/kami', '');
+  
+  // 创建新的请求对象，而不是修改原有对象
+  const newRequest = new Request(new URL(pathname, url.origin), request);
+  
+  // 处理路由请求
+  const response = await kamiRouter.handle(newRequest, env, ctx);
+  
+  // 确保响应包含 CORS 头
+  return addCorsHeaders(response);
+});
 
 // 公共API路由
 router.post('/api/auth/login', async (request, env) => {
   try {
-    const body = await request.json();
-    const { username, password } = body;
+    const { username, password } = await request.json();
 
     if (!username || !password) {
-      return new Response(JSON.stringify({ success: false, message: '用户名和密码不能为空' }), {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '用户名和密码不能为空'
+      }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -141,53 +142,62 @@ router.post('/api/auth/login', async (request, env) => {
     const userData = await env.KAMI_KV.get(userKey, { type: 'json' });
     
     if (!userData) {
-      return new Response(JSON.stringify({ success: false, message: '用户不存在' }), {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '用户不存在'
+      }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
-    
+
     // 验证密码
     const bcrypt = await import('bcryptjs');
     const passwordMatch = await bcrypt.compare(password, userData.passwordHash);
-    
+
     if (!passwordMatch) {
-      return new Response(JSON.stringify({ success: false, message: '密码错误' }), {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '密码错误'
+      }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
-    
+
     // 生成JWT令牌
-    const { default: jwt } = await import('./utils/jwt');
-    const token = await jwt.sign(
-      { id: userData.id, username: userData.username, role: userData.role },
-      env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    
+    const { default: JWT } = await import('./utils/jwt');
+    const jwt = new JWT(env.JWT_SECRET);
+    const token = await jwt.sign({
+      id: userData.id,
+      username: userData.username,
+      role: userData.role
+    });
+
     return new Response(JSON.stringify({
       success: true,
       token,
       user: {
         id: userData.id,
         username: userData.username,
-        role: userData.role,
-      },
+        role: userData.role
+      }
     }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   } catch (error) {
-    console.error('登录失败:', error);
-    return new Response(JSON.stringify({ success: false, message: error.message }), {
+    return new Response(JSON.stringify({
+      success: false,
+      message: error.message
+    }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 });
 
-router.post('/auth/register', async (request, env) => {
+// 注册路由
+router.post('/api/auth/register', async (request, env) => {
   try {
     const { username, password, email } = await request.json();
     
@@ -196,9 +206,12 @@ router.post('/auth/register', async (request, env) => {
     const existingUser = await env.KAMI_KV.get(userKey);
     
     if (existingUser) {
-      return new Response(JSON.stringify({ success: false, message: '用户名已存在' }), {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '用户名已存在'
+      }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
     
@@ -214,15 +227,12 @@ router.post('/auth/register', async (request, env) => {
       username,
       email,
       passwordHash,
-      role: 'user', // 默认角色
-      createdAt: new Date().toISOString(),
+      role: 'user',
+      createdAt: new Date().toISOString()
     };
-
-
     
     // 存储用户数据
     await env.KAMI_KV.put(userKey, JSON.stringify(newUser));
-    await env.KAMI_KV.put(`userId:${userId}`, username);
     
     return new Response(JSON.stringify({
       success: true,
@@ -230,16 +240,19 @@ router.post('/auth/register', async (request, env) => {
       user: {
         id: userId,
         username,
-        role: 'user',
-      },
+        role: 'user'
+      }
     }), {
       status: 201,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, message: error.message }), {
+    return new Response(JSON.stringify({
+      success: false,
+      message: error.message
+    }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 });
@@ -250,7 +263,7 @@ router.post('/api/verify', async (request, env) => {
     console.log("------", request);
     
   try {
-    const { code } = await request.json();
+    const { code, password } = await request.json();
     
     // 从KV存储中获取卡密信息
     const kamiKey = `kami:${code}`;
@@ -259,7 +272,15 @@ router.post('/api/verify', async (request, env) => {
     if (!kamiData) {
       return new Response(JSON.stringify({ success: false, message: '卡密不存在或已失效' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+    
+    // 验证密码（如果提供了密码且卡密有密码字段）
+    if (password && kamiData.password && password !== kamiData.password) {
+      return new Response(JSON.stringify({ success: false, message: '卡密密码错误' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
     
@@ -267,7 +288,7 @@ router.post('/api/verify', async (request, env) => {
     if (kamiData.status === 'used') {
       return new Response(JSON.stringify({ success: false, message: '卡密已被使用' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
     
@@ -286,29 +307,98 @@ router.post('/api/verify', async (request, env) => {
       },
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   } catch (error) {
     return new Response(JSON.stringify({ success: false, message: error.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 });
 
-// 导出处理函数
-export default {
-  fetch: async (request, env) => {
-    if (request.method === 'OPTIONS') {
-      return handleOptions(request);
+// 初始化管理员账号
+router.get('/api/init', async (request, env) => {
+  try {
+    // 检查是否已经初始化
+    const adminKey = 'user:admin';
+    const existingAdmin = await env.KAMI_KV.get(adminKey);
+    
+    if (existingAdmin) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '管理员账号已存在'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
     }
 
+    // 生成管理员账号
+    const bcrypt = await import('bcryptjs');
+    const { v4: uuidv4 } = await import('uuid');
+    
+    const adminData = {
+      id: uuidv4(),
+      username: 'admin',
+      passwordHash: await bcrypt.hash('admin123', 10),
+      email: 'admin@example.com',
+      role: 'admin',
+      createdAt: new Date().toISOString()
+    };
+
+    // 存储管理员账号
+    await env.KAMI_KV.put(adminKey, JSON.stringify(adminData));
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: '管理员账号初始化成功',
+      defaultCredentials: {
+        username: 'admin',
+        password: 'admin123'
+      }
+    }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: '管理员账号初始化失败: ' + error.message
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
+    });
+  }
+});
+
+// 主处理函数
+export default {
+  async fetch(request, env, ctx) {
     try {
+      // 处理 OPTIONS 请求
+      if (request.method === 'OPTIONS') {
+        return handleOptions(request);
+      }
+
+      // 应用请求频率限制
       await rateLimit(request);
-      const response = await router.handle(request, env);
-      return addCorsHeaders(response || new Response('Not Found', { status: 404 }));
+
+      // 处理路由请求
+      const response = await router.handle(request, env, ctx);
+      
+      // 确保所有响应都添加 CORS 头
+      return addCorsHeaders(response);
     } catch (error) {
-      const errorResponse = errorHandler(error);
+      // 错误处理
+      const errorResponse = new Response(JSON.stringify({
+        success: false,
+        message: error.message
+      }), {
+        status: error.status || 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      // 确保错误响应也添加 CORS 头
       return addCorsHeaders(errorResponse);
     }
   }

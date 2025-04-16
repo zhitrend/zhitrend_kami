@@ -1,0 +1,16 @@
+{
+  "name": "kami-backend",
+  "compatibility_date": "2024-04-15",
+  "main": "src/index.js",
+  "kv_namespaces": [
+    {
+      "binding": "KAMI_KV",
+      "id": "kami_kv_preview",
+      "preview_id": "kami_kv_preview"
+    }
+  ],
+  "vars": {
+    "ENVIRONMENT": "development",
+    "JWT_SECRET": "kami_system_jwt_secret_key"
+  }
+} 

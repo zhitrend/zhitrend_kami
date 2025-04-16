@@ -15,8 +15,11 @@ const Verify = () => {
       setLoading(true);
       setResult(null);
       
-      // 将表单中的cardNumber转换为code参数，以匹配后端API期望的格式
-      const requestData = { code: values.cardNumber };
+      // 将表单中的cardNumber和password转换为后端API期望的格式
+      const requestData = { 
+        code: values.cardNumber,
+        password: values.password 
+      };
       const response = await api.post('/verify', requestData);
       
       if (response.data.success) {
@@ -99,21 +102,20 @@ const Verify = () => {
               subTitle={result.message}
               extra={[
                 <Button type="primary" key="back" onClick={resetForm}>
-                  返回重新验证
+                  返回
                 </Button>
               ]}
             >
               {result.status === 'success' && result.data && (
-                <div className="result-info" style={{ background: '#f8f8f8', padding: '16px', borderRadius: '4px' }}>
-                  <Paragraph>
-                    <strong>激活码：</strong> {result.data.activationCode}
-                  </Paragraph>
-                  <Paragraph>
-                    <strong>产品名称：</strong> {result.data.productName}
-                  </Paragraph>
-                  <Paragraph>
-                    <strong>有效期至：</strong> {result.data.expireDate}
-                  </Paragraph>
+                <div className="result-info">
+                  <Title level={4}>卡密信息</Title>
+                  <ul>
+                    <li><strong>类型：</strong> {result.data.type}</li>
+                    <li><strong>有效期：</strong> {result.data.expireAt ? new Date(result.data.expireAt).toLocaleDateString() : '永久'}</li>
+                    {result.data.activationTime && (
+                      <li><strong>激活时间：</strong> {new Date(result.data.activationTime).toLocaleString()}</li>
+                    )}
+                  </ul>
                 </div>
               )}
             </Result>
