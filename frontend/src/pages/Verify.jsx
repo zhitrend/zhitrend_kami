@@ -20,27 +20,28 @@ const Verify = () => {
         code: values.cardNumber,
         password: values.password 
       };
-      const response = await api.post('/verify', requestData);
+      // 修正API路径，使用正确的后端端点
+      const response = await api.post('/kami/verify', requestData);
       
-      if (response.data.success) {
+      if (response.success) {
         setResult({
           status: 'success',
           title: '卡密验证成功',
           message: '您的卡密有效，可以使用以下信息',
-          data: response.data.data
+          data: response.data
         });
       } else {
         setResult({
           status: 'error',
           title: '卡密验证失败',
-          message: response.data.message || '验证失败'
+          message: response.message || '验证失败'
         });
       }
     } catch (error) {
       setResult({
         status: 'error',
         title: '验证过程中出错',
-        message: error.response?.data?.message || error.message || '网络错误，请稍后再试'
+        message: error.message || '网络错误，请稍后再试'
       });
     } finally {
       setLoading(false);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Space, Button, Tag, message, Popconfirm } from 'antd';
 import { ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
-import axios from 'axios';
 import api from '../utils/api';
 
 const KamiList = () => {
@@ -23,13 +22,13 @@ const KamiList = () => {
         },
       });
 
-      setData(response.data.data.items);
+      setData(response.data.items);
       setPagination({
         ...params,
-        total: response.data.data.total,
+        total: response.data.total,
       });
     } catch (error) {
-      message.error('获取卡密列表失败：' + (error.response?.data?.message || error.message));
+      message.error('获取卡密列表失败：' + (error.message || '未知错误'));
     } finally {
       setLoading(false);
     }
@@ -41,7 +40,7 @@ const KamiList = () => {
       message.success('删除成功');
       fetchData(pagination);
     } catch (error) {
-      message.error('删除失败：' + (error.response?.data?.message || error.message));
+      message.error('删除失败：' + (error.message || '未知错误'));
     }
   };
 
