@@ -154,8 +154,8 @@ const KamiList = () => {
   const columns = [
     {
       title: '卡号',
-      dataIndex: 'cardNumber',
-      key: 'cardNumber',
+      dataIndex: 'code',
+      key: 'code',
       render: (text) => (
         <Space>
           {text}
@@ -189,18 +189,25 @@ const KamiList = () => {
       dataIndex: 'status',
       key: 'status',
       render: (text) => {
-        return <Tag color={text === '未使用' ? 'success' : 'error'}>{text}</Tag>;
+        return <Tag color={text === 'unused' ? 'success' : 'error'}>{text}</Tag>;
       },
     },
     {
       title: '创建时间',
-      dataIndex: 'createTime',
-      key: 'createTime',
+      dataIndex: 'createdAt',
+      render: (text) => new Date(text).toLocaleString(),
     },
     {
       title: '过期时间',
-      dataIndex: 'expireTime',
-      key: 'expireTime',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (text, record) => {
+        // 开始时间createdAt + days 就是结束日期
+        const expireTime = new Date(text);
+        const days = record.days;
+        const expireDate = new Date(expireTime.getTime() + days * 24 * 60 * 60 * 1000);
+        return expireDate.toLocaleString();
+      },
     },
     {
       title: '操作',
