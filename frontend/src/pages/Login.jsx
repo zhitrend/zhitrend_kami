@@ -14,7 +14,6 @@ const Login = () => {
       const user = await Auth.login(values.username, values.password);
       
       message.success('登录成功！');
-      
       // 根据用户角色跳转到不同页面
       navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (error) {

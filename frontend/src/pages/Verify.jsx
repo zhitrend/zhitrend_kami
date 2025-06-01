@@ -22,7 +22,6 @@ const Verify = () => {
       };
       // 修正API路径，使用正确的后端端点
       const response = await api.post('/kami/verify', requestData);
-      
       if (response.data.success) {
         setResult({
           status: 'success',

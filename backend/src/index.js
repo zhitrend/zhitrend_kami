@@ -257,63 +257,6 @@ router.post('/api/auth/register', async (request, env) => {
   }
 });
 
-// 卡密验证API
-router.post('/verify', async (request, env) => {
-  try {
-    const { code, password } = await request.json();
-    
-    // 从KV存储中获取卡密信息
-    const kamiKey = `kami:${code}`;
-    const kamiData = await env.KAMI_KV.get(kamiKey, { type: 'json' });
-    
-    if (!kamiData) {
-      return new Response(JSON.stringify({ success: false, message: '卡密不存在或已失效' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      });
-    }
-    
-    // 验证密码（如果提供了密码且卡密有密码字段）
-    if (password && kamiData.password && password !== kamiData.password) {
-      return new Response(JSON.stringify({ success: false, message: '卡密密码错误' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      });
-    }
-    
-    // 检查卡密状态
-    if (kamiData.status === 'used') {
-      return new Response(JSON.stringify({ success: false, message: '卡密已被使用' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      });
-    }
-    
-    // 更新卡密状态
-    kamiData.status = 'used';
-    kamiData.usedAt = new Date().toISOString();
-    await env.KAMI_KV.put(kamiKey, JSON.stringify(kamiData));
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: '卡密验证成功',
-      data: {
-        code: kamiData.code,
-        type: kamiData.type,
-        value: kamiData.value,
-      },
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ success: false, message: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders }
-    });
-  }
-});
-
 // 初始化管理员账号
 router.get('/api/init', async (request, env) => {
   try {

@@ -38,7 +38,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// .wrangler/tmp/bundle-hskuiV/checked-fetch.js
+// .wrangler/tmp/bundle-FC5Ner/checked-fetch.js
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init) : request).url
@@ -56,7 +56,7 @@ function checkURL(request, init) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  ".wrangler/tmp/bundle-hskuiV/checked-fetch.js"() {
+  ".wrangler/tmp/bundle-FC5Ner/checked-fetch.js"() {
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -4163,11 +4163,11 @@ var require_bcrypt = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-hskuiV/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-FC5Ner/middleware-loader.entry.ts
 init_checked_fetch();
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-hskuiV/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-FC5Ner/middleware-insertion-facade.js
 init_checked_fetch();
 init_modules_watch_stub();
 
@@ -4963,51 +4963,6 @@ router2.post("/api/auth/register", async (request, env) => {
     });
   }
 });
-router2.post("/verify", async (request, env) => {
-  try {
-    const { code, password } = await request.json();
-    const kamiKey = `kami:${code}`;
-    const kamiData = await env.KAMI_KV.get(kamiKey, { type: "json" });
-    if (!kamiData) {
-      return new Response(JSON.stringify({ success: false, message: "\u5361\u5BC6\u4E0D\u5B58\u5728\u6216\u5DF2\u5931\u6548" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json", ...corsHeaders3 }
-      });
-    }
-    if (password && kamiData.password && password !== kamiData.password) {
-      return new Response(JSON.stringify({ success: false, message: "\u5361\u5BC6\u5BC6\u7801\u9519\u8BEF" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders3 }
-      });
-    }
-    if (kamiData.status === "used") {
-      return new Response(JSON.stringify({ success: false, message: "\u5361\u5BC6\u5DF2\u88AB\u4F7F\u7528" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders3 }
-      });
-    }
-    kamiData.status = "used";
-    kamiData.usedAt = (/* @__PURE__ */ new Date()).toISOString();
-    await env.KAMI_KV.put(kamiKey, JSON.stringify(kamiData));
-    return new Response(JSON.stringify({
-      success: true,
-      message: "\u5361\u5BC6\u9A8C\u8BC1\u6210\u529F",
-      data: {
-        code: kamiData.code,
-        type: kamiData.type,
-        value: kamiData.value
-      }
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders3 }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ success: false, message: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders3 }
-    });
-  }
-});
 router2.get("/api/init", async (request, env) => {
   try {
     const adminKey = "user:admin";
@@ -5119,7 +5074,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-hskuiV/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-FC5Ner/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -5153,7 +5108,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-hskuiV/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-FC5Ner/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

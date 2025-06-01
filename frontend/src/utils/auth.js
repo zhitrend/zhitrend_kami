@@ -4,8 +4,7 @@ class Auth {
   static async login(username, password) {
     try {
       const response = await api.post('/auth/login', { username, password });
-      const { token, user } = response;
-      
+      const { token, user } = response?.data;
       // 保存token和用户信息
       localStorage.setItem('token', token);
       localStorage.setItem('userRole', user.role);
