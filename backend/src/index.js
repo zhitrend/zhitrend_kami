@@ -40,8 +40,8 @@ function handleOptions(request) {
 
 // 添加 CORS 头到响应
 function addCorsHeaders(response) {
-  const headers = new Headers(response.headers);
-  const origin = response.headers.get('Origin') || '*';
+  const headers = new Headers(response.headers || {});
+  const origin = headers.get('Origin') || '*';
   
   Object.keys(corsHeaders).forEach((key) => {
     if (key === 'Access-Control-Allow-Origin') {
