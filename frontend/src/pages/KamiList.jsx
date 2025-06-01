@@ -93,12 +93,29 @@ const KamiList = () => {
     },
     {
       title: '状态',
-      key: 'used',
-      render: (_, record) => (
-        <Tag color={record.used ? 'red' : 'green'}>
-          {record.used ? '已使用' : '未使用'}
-        </Tag>
-      ),
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const statusMap = {
+          unused: { text: '未使用', color: 'green' },
+          used: { text: '已使用', color: 'red' },
+          expired: { text: '已过期', color: 'orange' }
+        };
+        const statusInfo = statusMap[status] || { text: status, color: 'gray' };
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+      },
+    },
+    {
+      title: '有效期(天)',
+      dataIndex: 'days',
+      key: 'days',
+      render: (days) => days ? `${days}天` : '-',
+    },
+    {
+      title: '使用时间',
+      dataIndex: 'usedAt',
+      key: 'usedAt',
+      render: (usedAt) => usedAt ? new Date(usedAt).toLocaleString() : '-',
     },
     {
       title: '创建时间',

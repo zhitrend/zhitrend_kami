@@ -14,7 +14,7 @@ const Register = () => {
       const { confirmPassword, ...registerData } = values;
       const response = await Auth.register(registerData.username, registerData.password, registerData.email);
       
-      if (response.success) {
+      if (response.data.success) {
         message.success('注册成功！请登录');
         navigate('/login');
       } else {
