@@ -23,9 +23,47 @@ const KamiStats = () => {
     try {
       setLoading(true);
       const response = await api.get('/kami/stats');
-      setStats(response.data.data);
+      
+      if (!response.data?.success || !response.data?.data) {
+        throw new Error(response.data?.message || '返回数据结构异常');
+      }
+
+      const statsData = response.data.data;
+      setStats({
+        total: statsData.total || 0,
+        used: statsData.used || 0,
+        unused: statsData.unused || 0,
+        expired: statsData.expired || 0,
+        usageRate: statsData.usageRate || '0%',
+        expirationRate: statsData.expirationRate || '0%',
+        typeStats: statsData.typeStats || {},
+        dailyUsage: statsData.dailyUsage || [],
+      });
     } catch (error) {
-      message.error('获取统计数据失败：' + (error.response?.data?.message || error.message));
+      console.error('API Error:', error);
+      let errorMsg = '获取统计数据失败';
+      if (error.response) {
+        errorMsg += ': ' + (
+          error.response.data?.message ||
+          error.response.statusText ||
+          `HTTP ${error.response.status}`
+        );
+      } else if (error.request) {
+        errorMsg += ': 网络请求未完成';
+      } else {
+        errorMsg += ': ' + (error.message || '未知错误');
+      }
+      message.error(errorMsg);
+      setStats({
+        total: 0,
+        used: 0,
+        unused: 0,
+        expired: 0,
+        usageRate: '0%',
+        expirationRate: '0%',
+        typeStats: {},
+        dailyUsage: [],
+      });
     } finally {
       setLoading(false);
     }

@@ -20,13 +20,31 @@ const KamiGenerate = () => {
         },
       });
 
+      if (!response.data?.success || !Array.isArray(response.data?.data)) {
+        throw new Error(response.data?.message || '返回数据结构异常');
+      }
+
       setResult({
         success: true,
-        data: response.data.data,
+        data: response.data.data || [],
       });
-      message.success('卡密生成成功！');
+      message.success(response.data?.message || '卡密生成成功！');
     } catch (error) {
-      message.error('生成失败：' + (error.response?.data?.message || error.message));
+      console.error('API Error:', error);
+      let errorMsg = '卡密生成失败';
+      if (error.response) {
+        errorMsg += ': ' + (
+          error.response.data?.message ||
+          error.response.statusText ||
+          `HTTP ${error.response.status}`
+        );
+      } else if (error.request) {
+        errorMsg += ': 网络请求未完成';
+      } else {
+        errorMsg += ': ' + (error.message || '未知错误');
+      }
+      message.error(errorMsg);
+      setResult(null);
     } finally {
       setLoading(false);
     }

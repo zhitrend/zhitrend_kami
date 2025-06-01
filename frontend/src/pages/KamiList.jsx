@@ -17,18 +17,40 @@ const KamiList = () => {
       setLoading(true);
       const response = await api.get('/kami/list', {
         params: {
-          page: params.current || 1,
-          limit: params.pageSize || 10,
+          page: params.current || pagination.current,
+          limit: params.pageSize || pagination.pageSize,
         },
       });
+      if (!response.data?.success || !response.data?.data) {
+        throw new Error(response.data?.message || '返回数据结构异常');
+      }
 
-      setData(response.data.items);
+      setData(response.data.data.items || []);
       setPagination({
+        ...pagination,
         ...params,
-        total: response.data.total,
+        total: response.data.data.total || 0,
       });
     } catch (error) {
-      message.error('获取卡密列表失败：' + (error.message || '未知错误'));
+      console.error('API Error:', error); // 记录完整错误对象
+      let errorMsg = '获取卡密列表失败';
+      if (error.response) {
+        errorMsg += ': ' + (
+          error.response.data?.message ||
+          error.response.statusText ||
+          `HTTP ${error.response.status}`
+        );
+      } else if (error.request) {
+        errorMsg += ': 网络请求未完成';
+      } else {
+        errorMsg += ': ' + (error.message || '未知错误');
+      }
+      message.error(errorMsg);
+      setData([]);
+      setPagination({
+        ...pagination,
+        total: 0,
+      });
     } finally {
       setLoading(false);
     }
