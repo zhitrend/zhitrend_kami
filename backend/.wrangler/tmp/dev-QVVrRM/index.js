@@ -38,7 +38,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// .wrangler/tmp/bundle-UWmWx1/checked-fetch.js
+// .wrangler/tmp/bundle-hskuiV/checked-fetch.js
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init) : request).url
@@ -56,7 +56,7 @@ function checkURL(request, init) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  ".wrangler/tmp/bundle-UWmWx1/checked-fetch.js"() {
+  ".wrangler/tmp/bundle-hskuiV/checked-fetch.js"() {
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -4163,11 +4163,11 @@ var require_bcrypt = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-UWmWx1/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-hskuiV/middleware-loader.entry.ts
 init_checked_fetch();
 init_modules_watch_stub();
 
-// .wrangler/tmp/bundle-UWmWx1/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-hskuiV/middleware-insertion-facade.js
 init_checked_fetch();
 init_modules_watch_stub();
 
@@ -4680,6 +4680,7 @@ router.post("/verify", async (request, env) => {
       throw new Error("\u5361\u5BC6\u4E0D\u80FD\u4E3A\u7A7A");
     }
     const kamiData = await env.KAMI_KV.get(`kami:${code}`, { type: "json" });
+    const kamiKey = `kami:${code}`;
     if (!kamiData) {
       throw new Error("\u5361\u5BC6\u4E0D\u5B58\u5728");
     }
@@ -4689,6 +4690,9 @@ router.post("/verify", async (request, env) => {
     if (new Date(kamiData.expiresAt) < /* @__PURE__ */ new Date()) {
       throw new Error("\u5361\u5BC6\u5DF2\u8FC7\u671F");
     }
+    kamiData.status = "used";
+    kamiData.usedAt = (/* @__PURE__ */ new Date()).toISOString();
+    await env.KAMI_KV.put(kamiKey, JSON.stringify(kamiData));
     return new Response(JSON.stringify({
       success: true,
       data: kamiData
@@ -4959,9 +4963,7 @@ router2.post("/api/auth/register", async (request, env) => {
     });
   }
 });
-router2.post("/api/verify", async (request, env) => {
-  debugger;
-  console.log("------", request);
+router2.post("/verify", async (request, env) => {
   try {
     const { code, password } = await request.json();
     const kamiKey = `kami:${code}`;
@@ -5117,7 +5119,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-UWmWx1/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-hskuiV/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -5151,7 +5153,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-UWmWx1/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-hskuiV/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

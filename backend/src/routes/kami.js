@@ -460,7 +460,8 @@ router.post('/verify', async (request, env) => {
     }
     
     const kamiData = await env.KAMI_KV.get(`kami:${code}`, { type: 'json' });
-    
+    const kamiKey = `kami:${code}`;
+
     if (!kamiData) {
       throw new Error('卡密不存在');
     }
@@ -472,7 +473,10 @@ router.post('/verify', async (request, env) => {
     if (new Date(kamiData.expiresAt) < new Date()) {
       throw new Error('卡密已过期');
     }
-    
+      // 更新卡密状态
+      kamiData.status = 'used';
+      kamiData.usedAt = new Date().toISOString();
+      await env.KAMI_KV.put(kamiKey, JSON.stringify(kamiData));
     return new Response(JSON.stringify({
       success: true,
       data: kamiData

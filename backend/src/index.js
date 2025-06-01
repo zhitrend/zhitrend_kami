@@ -258,10 +258,7 @@ router.post('/api/auth/register', async (request, env) => {
 });
 
 // 卡密验证API
-router.post('/api/verify', async (request, env) => {
-    debugger
-    console.log("------", request);
-    
+router.post('/verify', async (request, env) => {
   try {
     const { code, password } = await request.json();
     
